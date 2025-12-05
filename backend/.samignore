@@ -1,0 +1,43 @@
+# SAM ignore file - excludes files from Lambda deployment package
+
+# AWS CLI installation
+awscliv2.zip
+aws/
+
+# Local development tools
+local_dev/
+tests/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+
+# Documentation
+*.md
+README.md
+DEPLOYMENT_GUIDE.md
+QUICK_TEST.md
+
+# Git and IDE
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Environment files
+.env
+.env.local
+env.json
+.env.example
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+deployment.zip
+package/
+
+# SAM files
+samconfig.toml

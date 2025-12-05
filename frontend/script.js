@@ -1,5 +1,12 @@
 
-const API_BASE_URL = 'http://localhost:5000';
+// Use local backend for processing (YouTube works from local IP)
+// For chat, it will use Lambda after video is processed
+const LOCAL_BACKEND_URL = 'http://localhost:5000';
+const LAMBDA_BACKEND_URL = 'https://fx2g6wc3f4.execute-api.us-east-1.amazonaws.com/prod';
+
+// Use local backend for /ingest (to bypass YouTube IP blocking)
+// Use Lambda for /chat (serverless, scalable)
+const API_BASE_URL = LOCAL_BACKEND_URL;
 
 // State
 let currentVideoId = null;
@@ -22,9 +29,15 @@ async function ingestVideo() {
         return;
     }
 
-    // Show loading state
+    // Show loading state with progress
     ingestBtn.disabled = true;
-    showStatus('Processing video, this may take a minute...', 'loading');
+
+    // Show progress steps
+    showStatus('📥 Step 1/4: Extracting transcript from YouTube...', 'loading');
+
+    setTimeout(() => showStatus('📝 Step 2/4: Chunking transcript text...', 'loading'), 3000);
+    setTimeout(() => showStatus('🧠 Step 3/4: Generating embeddings with OpenAI...', 'loading'), 6000);
+    setTimeout(() => showStatus('☁️ Step 4/4: Uploading vector store to S3...', 'loading'), 15000);
 
     try {
         const response = await fetch(`${API_BASE_URL}/ingest`, {
@@ -40,19 +53,21 @@ async function ingestVideo() {
         if (response.ok && data.success) {
             currentVideoId = data.video_id;
             showStatus(
-                `Video processed successfully! ${data.chunks_count} chunks created from ${data.transcript_length} characters.`,
+                `✅ Video processed successfully! Created ${data.chunks_count} chunks from ${data.transcript_length} characters. Ready to chat!`,
                 'success'
             );
 
-            // Show chat section
-            document.getElementById('ingest-section').style.display = 'none';
-            document.getElementById('chat-section').style.display = 'block';
+            // Show chat section without default message
+            setTimeout(() => {
+                document.getElementById('ingest-section').style.display = 'none';
+                document.getElementById('chat-section').style.display = 'block';
+            }, 2000);
         } else {
-            showStatus(`Error: ${data.error || 'Failed to process video'}`, 'error');
+            showStatus(`❌ Error: ${data.error || 'Failed to process video'}`, 'error');
             ingestBtn.disabled = false;
         }
     } catch (error) {
-        showStatus(`Error: ${error.message}`, 'error');
+        showStatus(`❌ Error: ${error.message}`, 'error');
         ingestBtn.disabled = false;
     }
 }
@@ -123,7 +138,7 @@ function resetApp() {
     document.getElementById('video-url').value = '';
     document.getElementById('question-input').value = '';
     document.getElementById('ingest-status').innerHTML = '';
-    document.getElementById('chat-box').innerHTML = '<div class="message system-message">Video loaded successfully! Ask me anything about the video.</div>';
+    document.getElementById('chat-box').innerHTML = '';
     document.getElementById('ingest-section').style.display = 'block';
     document.getElementById('chat-section').style.display = 'none';
     document.getElementById('ingest-btn').disabled = false;

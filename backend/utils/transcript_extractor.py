@@ -3,12 +3,16 @@ YouTube Transcript Extraction Module
 Handles extraction of transcripts from YouTube videos
 """
 import re
+import os
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import (
     TranscriptsDisabled,
     NoTranscriptFound,
     VideoUnavailable
 )
+
+# Note: YouTube blocks AWS IPs. For production, use proxies or YouTube Data API.
+# For POC/demo, this works with cookies or from non-cloud IPs.
 
 
 def extract_video_id(url):
@@ -41,7 +45,20 @@ def get_transcript(video_url):
         print(f"   Video ID extracted: {video_id}")
 
         # Use the new API (v1.2.3+) - instance method instead of static
-        ytt_api = YouTubeTranscriptApi()
+        # Try with proxies if configured (for AWS Lambda)
+        proxies = {}
+        http_proxy = os.getenv('HTTP_PROXY')
+        https_proxy = os.getenv('HTTPS_PROXY')
+
+        if http_proxy or https_proxy:
+            if http_proxy:
+                proxies['http'] = http_proxy
+            if https_proxy:
+                proxies['https'] = https_proxy
+            print(f"   Using proxy configuration")
+            ytt_api = YouTubeTranscriptApi(proxies=proxies)
+        else:
+            ytt_api = YouTubeTranscriptApi()
 
         # Fetch transcript - returns transcript object
         transcript = ytt_api.fetch(video_id)

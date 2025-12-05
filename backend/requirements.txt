@@ -3,7 +3,7 @@ youtube-transcript-api==1.2.3
 openai==2.8.1
 faiss-cpu==1.7.4
 numpy==1.24.3
-boto3==1.34.51
+# boto3 is already included in Lambda runtime - no need to package it
 
 # Text processing
 tiktoken==0.6.0
@@ -11,3 +11,7 @@ langchain-text-splitters==0.0.1
 
 # Utilities
 python-dotenv==1.0.1
+
+# Proxy support for YouTube access from Lambda
+requests[socks]==2.31.0
+PySocks==1.7.1

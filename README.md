@@ -1,22 +1,33 @@
 # Single-Video Twin
 
-Turn any YouTube video into a conversational AI. Ask questions and get answers based strictly on the video content.
+Chat with any YouTube video using RAG (Retrieval-Augmented Generation).
 
-## What it does
+## Architecture
 
-Takes a YouTube URL, extracts the transcript, and lets you chat with it. The AI only uses information from the video to answer your questions.
+```
+Local Processing (One-time per video)
+  ├─ Extract YouTube transcript
+  ├─ Generate embeddings (OpenAI)
+  └─ Upload to S3
+         ↓
+    S3 Vector Store
+         ↓
+Serverless Backend (Lambda)
+  ├─ Load vectors from S3
+  ├─ Search relevant content
+  └─ Generate answer (GPT)
+         ↓
+    Frontend UI
+```
+
+**Why this approach?**
+As this is just for POC .Proxy services cost money. Instead, we process videos locally (no YouTube IP blocking) and upload embeddings to S3. The serverless backend handles all chat queries by loading from S3.
 
 ## Tech Stack
 
-**Backend:**
-- Python 3.11
-- AWS Lambda (serverless)
-- FAISS for vector search
-- OpenAI for embeddings and chat
-
-**Frontend:**
-- Plain HTML/CSS/JavaScript
-- No frameworks
+- Backend: Python, AWS Lambda, FAISS, OpenAI
+- Frontend: HTML/CSS/JavaScript
+- Storage: AWS S3
 
 ## Project Structure
 
@@ -35,149 +46,59 @@ prismetic/
     └── styles.css
 ```
 
-## Local Setup
+## Quick Start
 
-1. **Install dependencies:**
 ```bash
+# 1. Install dependencies
 cd backend
 pip install -r requirements.txt
-```
+pip install -r local_dev/requirements-dev.txt
 
-2. **Configure environment:**
-```bash
+# 2. Configure environment
 cp .env.example .env
-# Edit .env and add your OpenAI API key
+# Edit .env: add OPENAI_API_KEY and S3_BUCKET_NAME
+
+# 3. Start servers
+# Terminal 1
+cd local_dev && python3 local_server.py
+
+# Terminal 2
+cd frontend && python3 -m http.server 8000
+
+# 4. Open http://localhost:8000 and start processing videos!
 ```
 
-3. **Test locally (optional):**
-```bash
-cd local_dev
-pip install -r requirements-dev.txt
-python3 local_test.py
-# Or run with Flask server: python3 local_server.py
-```
-
-## Deployment
-
-### Backend (AWS)
+## Deploy Backend to AWS
 
 ```bash
 cd backend
-
-# Install AWS SAM if needed
-pip install aws-sam-cli
-
-# Build and deploy
 sam build
 sam deploy --guided
 ```
 
-During deployment you'll be asked for:
-- Stack name (e.g., `single-video-twin`)
-- AWS Region (e.g., `us-east-1`)
-- OpenAI API key
+You'll get an API Gateway URL. The Lambda backend can handle chat queries but not video ingestion (YouTube blocks AWS IPs).
 
-After deployment, note the API Gateway URL from the outputs.
+## How It Works
 
-### Frontend
-
-**Option 1 - S3:**
-```bash
-cd frontend
-# First update script.js with your API Gateway URL
-aws s3 sync . s3://your-bucket-name
-```
-
-**Option 2 - Netlify:**
-- Update `script.js` with your API Gateway URL
-- Drag and drop the frontend folder to Netlify
-
-**Option 3 - Local:**
-- Update `script.js` with your API Gateway URL
-- Open `index.html` in your browser
-
-## API Endpoints
-
-### POST /ingest
-Processes a YouTube video and stores the transcript.
-
-Request:
-```json
-{
-  "url": "https://www.youtube.com/watch?v=VIDEO_ID"
-}
-```
-
-Response:
-```json
-{
-  "success": true,
-  "video_id": "VIDEO_ID",
-  "chunks_count": 42,
-  "transcript_length": 15243
-}
-```
-
-### POST /chat
-Answers questions about the processed video.
-
-Request:
-```json
-{
-  "video_id": "VIDEO_ID",
-  "question": "What is the main topic?"
-}
-```
-
-Response:
-```json
-{
-  "success": true,
-  "answer": "The video discusses...",
-  "context_used": 3
-}
-```
-
-## How it works
-
-1. User provides YouTube URL
-2. Backend extracts transcript using `youtube-transcript-api`
-3. Text is split into chunks with overlap
-4. Chunks are embedded using OpenAI and stored in FAISS
-5. Index is saved to S3
-6. When user asks a question:
-   - Question is embedded
-   - Top 3 most relevant chunks are retrieved
-   - GPT generates answer using only those chunks
+1. Extract YouTube transcript
+2. Split into chunks (500 chars, 50 overlap)
+3. Generate embeddings (OpenAI)
+4. Store in FAISS index → Upload to S3
+5. Query: Embed question → Search top 3 chunks → GPT answer
 
 ## Environment Variables
 
-Backend `.env`:
-```
-OPENAI_API_KEY=your_key_here
-S3_BUCKET_NAME=your_bucket_name
+```env
+OPENAI_API_KEY=sk-...
+S3_BUCKET_NAME=single-video-twin-vector-store
 EMBEDDING_MODEL=text-embedding-3-small
 LLM_MODEL=gpt-3.5-turbo
-CHUNK_SIZE=500
-CHUNK_OVERLAP=50
-TOP_K_RESULTS=3
 ```
-
-## Cost
-
-Typical 10-minute video + 5 questions:
-- Lambda: Free tier
-- S3: Free tier
-- OpenAI: ~$0.005
-
-Total: Less than $0.01 per video
 
 ## Notes
 
-- Videos must have captions/transcripts enabled
-- One video per session currently
-- No authentication (suitable for POC/demo)
-- Works best with TED talks and educational content
+- Videos need captions enabled
+- Cost per video: ~$0.01 (mostly OpenAI)
 
 ## License
 

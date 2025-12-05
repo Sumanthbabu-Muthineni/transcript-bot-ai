@@ -41,6 +41,8 @@ Resources:
     Properties:
       CodeUri: .
       Handler: lambda_function.handler
+      MemorySize: 2048
+      Timeout: 900
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref VectorStoreBucket
