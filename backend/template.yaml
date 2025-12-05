@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Single-Video Twin - Serverless RAG Application
+
+Globals:
+  Function:
+    Timeout: 300
+    MemorySize: 1024
+    Runtime: python3.11
+    Environment:
+      Variables:
+        OPENAI_API_KEY: !Ref OpenAIAPIKey
+        S3_BUCKET_NAME: !Ref VectorStoreBucket
+        EMBEDDING_MODEL: text-embedding-3-small
+        LLM_MODEL: gpt-3.5-turbo
+        CHUNK_SIZE: 500
+        CHUNK_OVERLAP: 50
+        TOP_K_RESULTS: 3
+
+Parameters:
+  OpenAIAPIKey:
+    Type: String
+    Description: OpenAI API Key for embeddings and LLM
+    NoEcho: true
+
+Resources:
+  # S3 Bucket for storing FAISS indexes
+  VectorStoreBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-vector-store'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # Lambda Function
+  VideoTwinFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: lambda_function.handler
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref VectorStoreBucket
+      Events:
+        IngestVideo:
+          Type: Api
+          Properties:
+            Path: /ingest
+            Method: post
+            RestApiId: !Ref VideoTwinAPI
+        ChatVideo:
+          Type: Api
+          Properties:
+            Path: /chat
+            Method: post
+            RestApiId: !Ref VideoTwinAPI
+        OptionsIngest:
+          Type: Api
+          Properties:
+            Path: /ingest
+            Method: options
+            RestApiId: !Ref VideoTwinAPI
+        OptionsChat:
+          Type: Api
+          Properties:
+            Path: /chat
+            Method: options
+            RestApiId: !Ref VideoTwinAPI
+
+  # API Gateway
+  VideoTwinAPI:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'POST, OPTIONS'"
+        AllowHeaders: "'Content-Type'"
+        AllowOrigin: "'*'"
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${VideoTwinAPI}.execute-api.${AWS::Region}.amazonaws.com/prod'
+
+  S3BucketName:
+    Description: S3 Bucket for vector store
+    Value: !Ref VectorStoreBucket

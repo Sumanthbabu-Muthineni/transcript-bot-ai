@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+env/
+
+# Environment variables
+.env
+.env.local
+backend/env.json
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+
+# Build
+deployment.zip
+package/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+

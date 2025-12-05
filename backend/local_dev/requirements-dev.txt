@@ -1,0 +1,5 @@
+# Local development dependencies only
+# Install: pip install -r requirements-dev.txt
+
+flask==3.0.0
+flask-cors==4.0.0

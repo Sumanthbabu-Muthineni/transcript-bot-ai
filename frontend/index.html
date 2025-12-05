@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single-Video Twin</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Single-Video Twin</h1>
+            <p>Turn any YouTube video into a conversational AI</p>
+        </header>
+
+        <!-- Step 1: Ingest Video -->
+        <section class="section" id="ingest-section">
+            <h2>Step 1: Load Video</h2>
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="video-url"
+                    placeholder="Paste YouTube URL here..."
+                    aria-label="YouTube URL"
+                >
+                <button id="ingest-btn" onclick="ingestVideo()">Process Video</button>
+            </div>
+            <div id="ingest-status" class="status"></div>
+        </section>
+
+        <!-- Step 2: Chat -->
+        <section class="section" id="chat-section" style="display: none;">
+            <h2>Step 2: Ask Questions</h2>
+            <div class="chat-box" id="chat-box">
+                <div class="message system-message">
+                    Video loaded successfully! Ask me anything about the video.
+                </div>
+            </div>
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="question-input"
+                    placeholder="Ask a question about the video..."
+                    aria-label="Question"
+                    onkeypress="handleEnter(event)"
+                >
+                <button id="ask-btn" onclick="askQuestion()">Ask</button>
+            </div>
+            <button class="reset-btn" onclick="resetApp()">Load New Video</button>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
